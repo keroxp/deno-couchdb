@@ -1,3 +1,12 @@
+import Reader = Deno.Reader;
+import Buffer = Deno.Buffer;
+import copy = Deno.copy;
+
+export type CouchResponse = {
+  id: string;
+  ok: boolean;
+  rev: string;
+};
 export type CouchMetadata = {
   couchdb: string;
   uuid: string;
@@ -40,12 +49,26 @@ export type CouchDocument = {
   _ok: boolean;
   _rev: string;
   _deleted?: boolean;
-  _attachments?: any;
+  _attachments?: {
+    [file: string]: {
+      content_type: string;
+      digest: string;
+      data?: string;
+      length: number;
+      revpos: number;
+      stub?: boolean;
+      encoding?: string;
+      encoded_length?: number;
+    };
+  };
   _conflicts?: any[];
   _deleted_conflicts?: any[];
   _local_seq?: string;
   _revs_info?: any[];
-  _revisions?: any;
+  _revisions?: {
+    ids: string;
+    start: number;
+  };
 };
 
 export class CouchError extends Error {
@@ -60,15 +83,18 @@ export class CouchError extends Error {
 
 export type NotModified = Symbol;
 export const NotModified = Symbol("NotModified");
+
 class CouchDatabase<T> {
   constructor(readonly endpoint: string, readonly db: string) {}
+
   path() {
     return `${this.endpoint}/${this.db}`;
   }
+
   async insert(
     doc: T,
     opts?: {
-      batch?: boolean;
+      batch?: "ok";
       fullCommit?: boolean;
     }
   ): Promise<{
@@ -85,7 +111,7 @@ class CouchDatabase<T> {
       if (opts.fullCommit != null) {
         headers.set("X-Couch-Full-Commit", opts.fullCommit ? "true" : "false");
       }
-      if (opts.batch != null && opts.batch) {
+      if (opts.batch != null) {
         path += "?batch=ok";
       }
     }
@@ -101,24 +127,12 @@ class CouchDatabase<T> {
     throw new CouchError(res.status, await res.text());
   }
 
-  async info(
-    id: string
-  ): Promise<
-    | {
-        size: number;
-        rev: string;
-        modified: boolean;
-      }
-    | undefined
-  > {
+  async info(id: string): Promise<Headers | undefined> {
     const res = await fetch(`${this.path()}/${id}`, {
       method: "HEAD"
     });
     if (res.status === 200 || res.status === 304) {
-      const size = res.headers.get("content-length");
-      const etag = res.headers.get("etag");
-      const rev = etag.match(/^"(.+?)"$/)[1];
-      return { size: parseInt(size), rev, modified: res.status === 200 };
+      return res.headers;
     } else if (res.status === 404) {
       return void 0;
     }
@@ -142,6 +156,52 @@ class CouchDatabase<T> {
       revs_info: boolean;
     }>
   ): Promise<(CouchDocument & T) | NotModified> {
+    return this._get("json", id, opts);
+  }
+
+  async getMultipart(
+    id: string,
+    opts?: Partial<{
+      attachments: boolean;
+      att_encoding_info: boolean;
+      atts_since: any[];
+      conflicts: boolean;
+      deleted_conflicts: boolean;
+      latest: boolean;
+      local_seq: boolean;
+      meta: boolean;
+      open_revs: any[];
+      rev: string;
+      revs: boolean;
+      revs_info: boolean;
+    }>
+  ): Promise<[CouchDocument & T, FormData] | NotModified> {
+    return this._get("multipart", id, opts);
+  }
+
+  private async _get<A extends "json" | "multipart">(
+    accept: A,
+    id: string,
+    opts?: Partial<{
+      attachments: boolean;
+      att_encoding_info: boolean;
+      atts_since: any[];
+      conflicts: boolean;
+      deleted_conflicts: boolean;
+      latest: boolean;
+      local_seq: boolean;
+      meta: boolean;
+      open_revs: any[];
+      rev: string;
+      revs: boolean;
+      revs_info: boolean;
+    }>
+  ): Promise<
+    {
+      json: (CouchDocument & T) | NotModified;
+      multipart: [(CouchDocument & T), FormData] | NotModified;
+    }[A]
+  > {
     const params = new URLSearchParams();
     if (opts != null) {
       if (opts.attachments != null) {
@@ -155,10 +215,17 @@ class CouchDatabase<T> {
       }
     }
     const res = await fetch(`${this.path()}/${id}?${params.toString()}`, {
-      method: "GET"
+      method: "GET",
+      headers: new Headers({ accept })
     });
     if (res.status === 200) {
-      return res.json();
+      if (accept === "multipart/related") {
+        const form = await res.formData();
+        const json = JSON.parse(form[0]);
+        return [json, form];
+      } else if (accept === "application/json") {
+        return res.json();
+      }
     } else if (res.status === 304) {
       return NotModified;
     }
@@ -171,7 +238,7 @@ class CouchDatabase<T> {
     opts?: {
       fullCommit?: boolean;
       rev?: string;
-      batch?: boolean;
+      batch?: "ok";
       new_edits?: boolean;
     }
   ): Promise<{ id: string; ok: boolean; rev: string }> {
@@ -209,10 +276,10 @@ class CouchDatabase<T> {
     id: string,
     rev: string,
     opts?: {
-      batch?: boolean;
+      batch?: "ok";
       fullCommit?: boolean;
     }
-  ): Promise<{ id: string; ok: boolean; rev: string }> {
+  ): Promise<CouchResponse> {
     const headers = new Headers({
       "content-type": "application/json"
     });
@@ -230,6 +297,127 @@ class CouchDatabase<T> {
       method: "DELETE"
     });
     if (res.status === 200 || res.status === 202) {
+      return res.json();
+    }
+    throw new CouchError(res.status, await res.text());
+  }
+
+  async attachmentInfo(
+    id: string,
+    attachment: string,
+    opts?: {
+      rev: string;
+    }
+  ): Promise<Headers | undefined> {
+    const params = new URLSearchParams();
+    if (opts) {
+      params.append("rev", opts.rev);
+    }
+    const res = await fetch(
+      `${this.path()}/${id}/${attachment}?${params.toString()}`,
+      {
+        method: "GET"
+      }
+    );
+    if (res.status === 200) {
+      return res.headers;
+    } else if (res.status === 404) {
+      return;
+    }
+    throw new CouchError(res.status, await res.text());
+  }
+
+  async getAttachment(
+    id: string,
+    attachment: string,
+    opts: {
+      rev: string;
+    }
+  ): Promise<ArrayBuffer> {
+    const params = new URLSearchParams();
+    if (opts) {
+      params.append("rev", opts.rev);
+    }
+    const res = await fetch(
+      `${this.path()}/${id}/${attachment}?${params.toString()}`,
+      {
+        method: "GET"
+      }
+    );
+    if (res.status === 200) {
+      return res.arrayBuffer();
+    }
+    throw new CouchError(res.status, await res.text());
+  }
+
+  async putAttachment(
+    id: string,
+    attachment: string,
+    {
+      data,
+      contentType,
+      rev
+    }: {
+      data: Reader;
+      contentType: string;
+      rev?: string;
+    }
+  ): Promise<CouchResponse> {
+    const params = new URLSearchParams();
+    const headers = new Headers({
+      "content-type": contentType
+    });
+    if (rev != null) {
+      params.append("rev", rev);
+    }
+    // TODO: use ReadableStream if possible
+    const buf = new Buffer();
+    await copy(buf, data);
+    const res = await fetch(
+      `${this.path()}/${id}/${attachment}?${params.toString()}`,
+      {
+        method: "PUT",
+        headers,
+        body: buf.bytes()
+      }
+    );
+    if (res.status === 201 || res.status === 202) {
+      return res.json();
+    }
+    throw new CouchError(res.status, await res.text());
+  }
+
+  async deleteAttachment(
+    id: string,
+    attachment: string,
+    {
+      rev,
+      batch,
+      fullCommit
+    }: {
+      rev: string;
+      fullCommit?: boolean;
+      batch?: "ok";
+    }
+  ): Promise<CouchResponse> {
+    const params = new URLSearchParams();
+    const headers = new Headers();
+    if (rev != null) {
+      params.append("rev", rev);
+    }
+    if (batch != null) {
+      params.append("batch", "ok");
+    }
+    if (fullCommit != null) {
+      headers.set("X-Couch-Full-Commit", fullCommit ? "true" : "false");
+    }
+    const res = await fetch(
+      `${this.path()}/${id}/${attachment}?${params.toString()}`,
+      {
+        method: "GET"
+      }
+    );
+    if (res.status === 201 || res.status === 202) {
       return res.json();
     }
     throw new CouchError(res.status, await res.text());
