@@ -1,5 +1,5 @@
-import { runIfMain, test } from "https://deno.land/std@v0.7.0/testing/mod.ts";
-import { CouchClient } from "./couch.ts";
+import {runIfMain, test} from "https://deno.land/std@v0.7.0/testing/mod.ts";
+import {CouchClient} from "./couch.ts";
 import {
   assert,
   assertEquals
@@ -46,7 +46,7 @@ test(async function createDatabase() {
   const db = "testdb1";
   try {
     assertEquals(await client.databaseExists(db), false);
-    const { ok } = await client.createDatabase(db);
+    const {ok} = await client.createDatabase(db);
     assertEquals(ok, true);
   } finally {
     await client.deleteDatabase(db);
@@ -60,7 +60,7 @@ test(async function getDatabase() {
 });
 test(async function deleteDatabase() {
   await useDatabase(async db => {
-    const { ok } = await client.deleteDatabase(db);
+    const {ok} = await client.deleteDatabase(db);
     assertEquals(ok, true);
     assertEquals(await client.databaseExists(db), false);
   });
@@ -99,7 +99,7 @@ test(async function putDocument() {
     years: [2018, 2019]
   };
   const _id = "denode";
-  const { id, rev, ok } = await db.put(_id, doc);
+  const {id, rev, ok} = await db.put(_id, doc);
   assertEquals(id, _id);
   assertEquals(ok, true);
   const doc2 = {
@@ -107,7 +107,7 @@ test(async function putDocument() {
     nice: true,
     years: [2009, 2019]
   };
-  const res = await db.put(id, doc2, { rev });
+  const res = await db.put(id, doc2, {rev});
   assertEquals(res.id, id);
   const _doc = await db.get(id);
   assertEquals(_doc["name"], "node");
@@ -115,7 +115,7 @@ test(async function putDocument() {
   assertEquals(_doc["years"], [2009, 2019]);
 });
 test(async function documentInfo() {
-  const { id } = await db.insert({ name: "deno" });
+  const {id} = await db.insert({name: "deno"});
   const info = await db.info(id);
   assert(info !== void 0, "info must be defined");
   assertEquals(await db.info("xxx"), void 0);
@@ -124,10 +124,28 @@ test(async function deleteDocument() {
   const doc = {
     name: "deno"
   };
-  const { id, rev } = await db.insert(doc);
+  const {id, rev} = await db.insert(doc);
   const res = await db.delete(id, rev);
   assertEquals(res.id, id);
   assertEquals(await db.info(id), void 0);
+});
+
+test(async function findDocument() {
+  await Promise.all([
+    db.insert({
+      id: 100,
+      name: "deno"
+    }),
+    db.insert({
+      id: 101,
+      name: "node"
+    })]);
+  const res = await db.find({
+    id: 100
+  });
+  assertEquals(res.docs.length, 1);
+  assertEquals(res.docs[0]["id"], 100);
+  assertEquals(res.docs[0]["name"], "deno")
 });
 
 beforeAll()

@@ -1,6 +1,7 @@
 import Reader = Deno.Reader;
 import Buffer = Deno.Buffer;
 import copy = Deno.copy;
+import Response = domTypes.Response;
 
 export type CouchResponse = {
   id: string;
@@ -175,7 +176,7 @@ class CouchDatabase<T> {
       revs: boolean;
       revs_info: boolean;
     }>
-  ): Promise<[CouchDocument & T, FormData] | NotModified> {
+  ): Promise<Response | NotModified> {
     return this._get("multipart", id, opts);
   }
 
@@ -199,7 +200,7 @@ class CouchDatabase<T> {
   ): Promise<
     {
       json: (CouchDocument & T) | NotModified;
-      multipart: [(CouchDocument & T), FormData] | NotModified;
+      multipart: Response | NotModified;
     }[A]
   > {
     const params = new URLSearchParams();
@@ -219,11 +220,9 @@ class CouchDatabase<T> {
       headers: new Headers({ accept })
     });
     if (res.status === 200) {
-      if (accept === "multipart/related") {
-        const form = await res.formData();
-        const json = JSON.parse(form[0]);
-        return [json, form];
-      } else if (accept === "application/json") {
+      if (accept === "multipart") {
+        return res;
+      } else if (accept === "json") {
         return res.json();
       }
     } else if (res.status === 304) {
@@ -265,6 +264,40 @@ class CouchDatabase<T> {
       method: "PUT",
       headers,
       body
+    });
+    if (res.status === 201 || res.status === 202) {
+      return res.json();
+    }
+    throw new CouchError(res.status, await res.text());
+  }
+
+  async copy(
+    id: string,
+    destination: string,
+    opts?: {
+      rev?: string;
+      batch?: "ok";
+      fullCommit?: boolean;
+    }
+  ): Promise<CouchResponse> {
+    const params = new URLSearchParams();
+    const headers = new Headers({
+      destination
+    });
+    if (opts) {
+      if (opts.fullCommit != null) {
+        headers.set("X-Couch-Full-Commit", opts.fullCommit ? "true" : "false");
+      }
+      if (opts.rev) {
+        params.append("rev", opts.rev);
+      }
+      if (opts.batch) {
+        params.append("batch", "ok");
+      }
+    }
+    const res = await fetch(`${this.path()}/${id}?${params.toString()}`, {
+      method: "COPY",
+      headers
     });
     if (res.status === 201 || res.status === 202) {
       return res.json();
@@ -418,6 +451,60 @@ class CouchDatabase<T> {
       }
     );
     if (res.status === 201 || res.status === 202) {
+      return res.json();
+    }
+    throw new CouchError(res.status, await res.text());
+  }
+
+  async find<T>(
+    selector: any,
+    opts: Partial<{
+      limit: number;
+      skip: number;
+      sort: (string | { [key: string]: "asc" | "desc" })[];
+      fields: string[];
+      use_index: string | [string, string];
+      r: number;
+      bookmark: string;
+      update: boolean;
+      stable: boolean;
+      stale: string;
+      execution_stats: boolean;
+    }> = {}
+  ): Promise<{
+    docs: T[];
+    warning?: string;
+    execution_stats?: {
+      total_keys_examined: number;
+      total_docs_examined: number;
+      total_quorum_docs_examined: number;
+      results_returned: number;
+      execution_time_ms: number;
+    };
+    bookmark?: string;
+  }> {
+    const body = JSON.stringify({
+      selector,
+      limit: opts.limit,
+      skip: opts.skip,
+      sort: opts.sort,
+      fields: opts.fields,
+      use_index: opts.use_index,
+      r: opts.r,
+      bookmark: opts.bookmark,
+      update: opts.update,
+      stale: opts.stale,
+      stable: opts.stable,
+      execution_stats:opts.execution_stats
+    });
+    const res = await fetch(`${this.path()}/_find`, {
+      method: "POST",
+      headers: new Headers({
+        "content-type": "application/json"
+      }),
+      body
+    });
+    if (res.status === 200) {
       return res.json();
     }
     throw new CouchError(res.status, await res.text());
