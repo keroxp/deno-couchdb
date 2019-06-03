@@ -7,7 +7,9 @@ import {
 import open = Deno.open;
 
 const kDbName = "testdb";
-const client = new CouchClient("http://127.0.0.1:5984");
+const env= Deno.env();
+const endpoint = env["COUCHDB_ENDPOINT"] || "http://127.0.0.1:5984";
+const client = new CouchClient(endpoint);
 const db = client.database(kDbName);
 
 async function beforeAll() {

@@ -1,11 +1,14 @@
-language: python
-
 services:
-  - couchdb
+  - docker
+
+before_install:
+  - docker pull couchdb:2.3.0
+  - docker run -d -p 127.0.0.1:5984:5984 -t couchdb:2.3.0
 
 install:
-- curl -fsSL https://deno.land/x/install/install.sh | sh -s -- v0.7.0
-- export PATH="$HOME/.deno/bin:$PATH"
+  - curl -fsSL https://deno.land/x/install/install.sh | sh -s -- v0.7.0
+  - export PATH="$HOME/.deno/bin:$PATH"
 
 script:
-- deno run -A ./couch_test.ts
+  - sleep 5
+  - deno run -A couch_test.ts
