@@ -10,4 +10,4 @@ install:
   - export PATH="$HOME/.deno/bin:$PATH"
 
 script:
-  - deno run -A couch_test.ts
+  - __DELAY_SECONDS=5 deno run -A couch_test.ts
