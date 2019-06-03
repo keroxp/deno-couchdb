@@ -9,14 +9,10 @@ import open = Deno.open;
 const kDbName = "testdb";
 const env= Deno.env();
 const endpoint = env["COUCHDB_ENDPOINT"] || "http://127.0.0.1:5984";
-const wait = parseInt(env["__DELAY_SECONDS"] || "0");
 const client = new CouchClient(endpoint);
 const db = client.database(kDbName);
 
 async function beforeAll() {
-  await new Promise(resolve => {
-    setTimeout(resolve, ~~(wait*1000))
-  });
   if (await client.databaseExists(kDbName)) {
     await client.deleteDatabase(kDbName);
   }
