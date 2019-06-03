@@ -7,10 +7,34 @@ import {
 import open = Deno.open;
 
 const kDbName = "testdb";
-const client = new CouchClient("http://127.0.0.1:5984");
+const env= Deno.env();
+const endpoint = env["COUCHDB_ENDPOINT"] || "http://127.0.0.1:5984";
+const client = new CouchClient(endpoint);
 const db = client.database(kDbName);
 
+async function waitForCouch() {
+  const url = new URL(endpoint);
+  const tryConnect = async () => {
+    await Deno.dial("tcp", `${url.host}`)
+  };
+  await tryConnect().catch(async () => {
+    console.log("waiting for "+url.host+"...");
+    for (let i = 0; i < 10; i++) {
+      await new Promise<void>(((resolve) => {
+        setTimeout(resolve, 1000)
+      }));
+      try {
+        await tryConnect();
+        return ;
+      } catch (e) {
+      }
+    }
+    throw new Error("couchdb is not up: host="+url.host)
+  });
+}
+
 async function beforeAll() {
+  await waitForCouch();
   if (await client.databaseExists(kDbName)) {
     await client.deleteDatabase(kDbName);
   }
