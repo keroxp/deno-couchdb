@@ -363,7 +363,7 @@ class CouchDatabase<T> {
   async getAttachment(
     id: string,
     attachment: string,
-    opts: {
+    opts?: {
       rev: string;
     }
   ): Promise<ArrayBuffer> {
@@ -423,26 +423,22 @@ class CouchDatabase<T> {
   async deleteAttachment(
     id: string,
     attachment: string,
-    {
-      rev,
-      batch,
-      fullCommit
-    }: {
-      rev: string;
+    rev: string,
+    opts?: {
       fullCommit?: boolean;
       batch?: "ok";
     }
   ): Promise<CouchResponse> {
     const params = new URLSearchParams();
     const headers = new Headers();
-    if (rev != null) {
-      params.append("rev", rev);
-    }
-    if (batch != null) {
-      params.append("batch", "ok");
-    }
-    if (fullCommit != null) {
-      headers.set("X-Couch-Full-Commit", fullCommit ? "true" : "false");
+    params.append("rev", rev);
+    if (opts) {
+      if (opts.batch != null) {
+        params.append("batch", "ok");
+      }
+      if (opts.fullCommit != null) {
+        headers.set("X-Couch-Full-Commit", opts.fullCommit ? "true" : "false");
+      }
     }
     const res = await fetch(
       `${this.path()}/${id}/${attachment}?${params.toString()}`,
@@ -450,7 +446,7 @@ class CouchDatabase<T> {
         method: "GET"
       }
     );
-    if (res.status === 201 || res.status === 202) {
+    if (res.status === 200 || res.status === 202) {
       return res.json();
     }
     throw new CouchError(res.status, await res.text());
@@ -495,7 +491,7 @@ class CouchDatabase<T> {
       update: opts.update,
       stale: opts.stale,
       stable: opts.stable,
-      execution_stats:opts.execution_stats
+      execution_stats: opts.execution_stats
     });
     const res = await fetch(`${this.path()}/_find`, {
       method: "POST",
