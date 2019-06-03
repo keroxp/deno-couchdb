@@ -2,6 +2,8 @@ import Reader = Deno.Reader;
 import Buffer = Deno.Buffer;
 import copy = Deno.copy;
 import Response = domTypes.Response;
+import BodySource = body.BodySource;
+import RequestInit = domTypes.RequestInit;
 
 export type CouchResponse = {
   id: string;
@@ -84,13 +86,51 @@ export class CouchError extends Error {
 
 export type NotModified = Symbol;
 export const NotModified = Symbol("NotModified");
+export type CouchOptions = {
+  basicAuth?: {
+    username: string;
+    password: string;
+  };
+};
+
+type FetchFunctionLike = (url: string, opts?: RequestInit) => Promise<Response>;
+function makeFetch(
+  endpoint: string,
+  opts: CouchOptions = {}
+): FetchFunctionLike {
+  return (
+    path: string,
+    {
+      method = "GET",
+      body,
+      headers = new Headers()
+    }: {
+      method?: string;
+      headers?: Headers;
+      body?: BodySource;
+    } = {}
+  ) => {
+    if (opts.basicAuth) {
+      const { username, password } = opts.basicAuth;
+      const authorization = `Basic ${atob(username + ":" + password)}`;
+      headers.set("authorization", authorization);
+    }
+    return fetch(`${endpoint}` + path, {
+      headers,
+      body,
+      method
+    });
+  };
+}
 
 class CouchDatabase<T> {
-  constructor(readonly endpoint: string, readonly db: string) {}
+  constructor(
+    readonly endpoint: string,
+    readonly db: string,
+    readonly opts: CouchOptions = {}
+  ) {}
 
-  path() {
-    return `${this.endpoint}/${this.db}`;
-  }
+  private fetch = makeFetch(`${this.endpoint}/${this.db}`, this.opts);
 
   async insert(
     doc: T,
@@ -107,7 +147,7 @@ class CouchDatabase<T> {
       "content-type": "application/json",
       accept: "application/json"
     });
-    let path = this.path();
+    let path = "";
     if (opts) {
       if (opts.fullCommit != null) {
         headers.set("X-Couch-Full-Commit", opts.fullCommit ? "true" : "false");
@@ -117,7 +157,7 @@ class CouchDatabase<T> {
       }
     }
     const body = JSON.stringify(doc);
-    const res = await fetch(path, {
+    const res = await this.fetch(path, {
       method: "POST",
       headers,
       body
@@ -129,7 +169,7 @@ class CouchDatabase<T> {
   }
 
   async info(id: string): Promise<Headers | undefined> {
-    const res = await fetch(`${this.path()}/${id}`, {
+    const res = await this.fetch(`/${id}`, {
       method: "HEAD"
     });
     if (res.status === 200 || res.status === 304) {
@@ -215,7 +255,7 @@ class CouchDatabase<T> {
         );
       }
     }
-    const res = await fetch(`${this.path()}/${id}?${params.toString()}`, {
+    const res = await this.fetch(`/${id}?${params.toString()}`, {
       method: "GET",
       headers: new Headers({ accept })
     });
@@ -260,7 +300,7 @@ class CouchDatabase<T> {
         params.append("new_edits", opts.new_edits ? "true" : "false");
       }
     }
-    const res = await fetch(`${this.path()}/${id}?${params.toString()}`, {
+    const res = await this.fetch(`/${id}?${params.toString()}`, {
       method: "PUT",
       headers,
       body
@@ -295,7 +335,7 @@ class CouchDatabase<T> {
         params.append("batch", "ok");
       }
     }
-    const res = await fetch(`${this.path()}/${id}?${params.toString()}`, {
+    const res = await this.fetch(`/${id}?${params.toString()}`, {
       method: "COPY",
       headers
     });
@@ -326,7 +366,7 @@ class CouchDatabase<T> {
         params.append("batch", "ok");
       }
     }
-    const res = await fetch(`${this.path()}/${id}?${params.toString()}`, {
+    const res = await this.fetch(`/${id}?${params.toString()}`, {
       method: "DELETE"
     });
     if (res.status === 200 || res.status === 202) {
@@ -346,12 +386,9 @@ class CouchDatabase<T> {
     if (opts) {
       params.append("rev", opts.rev);
     }
-    const res = await fetch(
-      `${this.path()}/${id}/${attachment}?${params.toString()}`,
-      {
-        method: "GET"
-      }
-    );
+    const res = await this.fetch(`/${id}/${attachment}?${params.toString()}`, {
+      method: "GET"
+    });
     if (res.status === 200) {
       return res.headers;
     } else if (res.status === 404) {
@@ -371,12 +408,9 @@ class CouchDatabase<T> {
     if (opts) {
       params.append("rev", opts.rev);
     }
-    const res = await fetch(
-      `${this.path()}/${id}/${attachment}?${params.toString()}`,
-      {
-        method: "GET"
-      }
-    );
+    const res = await this.fetch(`/${id}/${attachment}?${params.toString()}`, {
+      method: "GET"
+    });
     if (res.status === 200) {
       return res.arrayBuffer();
     }
@@ -406,14 +440,11 @@ class CouchDatabase<T> {
     // TODO: use ReadableStream if possible
     const buf = new Buffer();
     await copy(buf, data);
-    const res = await fetch(
-      `${this.path()}/${id}/${attachment}?${params.toString()}`,
-      {
-        method: "PUT",
-        headers,
-        body: buf.bytes()
-      }
-    );
+    const res = await this.fetch(`/${id}/${attachment}?${params.toString()}`, {
+      method: "PUT",
+      headers,
+      body: buf.bytes()
+    });
     if (res.status === 201 || res.status === 202) {
       return res.json();
     }
@@ -440,12 +471,9 @@ class CouchDatabase<T> {
         headers.set("X-Couch-Full-Commit", opts.fullCommit ? "true" : "false");
       }
     }
-    const res = await fetch(
-      `${this.path()}/${id}/${attachment}?${params.toString()}`,
-      {
-        method: "GET"
-      }
-    );
+    const res = await this.fetch(`/${id}/${attachment}?${params.toString()}`, {
+      method: "GET"
+    });
     if (res.status === 200 || res.status === 202) {
       return res.json();
     }
@@ -493,7 +521,7 @@ class CouchDatabase<T> {
       stable: opts.stable,
       execution_stats: opts.execution_stats
     });
-    const res = await fetch(`${this.path()}/_find`, {
+    const res = await this.fetch(`/_find`, {
       method: "POST",
       headers: new Headers({
         "content-type": "application/json"
@@ -508,10 +536,12 @@ class CouchDatabase<T> {
 }
 
 export class CouchClient {
-  constructor(readonly endpoint: string) {}
+  constructor(readonly endpoint: string, readonly opts: CouchOptions = {}) {}
+
+  private readonly fetch = makeFetch(this.endpoint, this.opts);
 
   async metadata(): Promise<CouchMetadata> {
-    const res = await fetch(`${this.endpoint}`, {
+    const res = await this.fetch("/", {
       method: "GET",
       headers: new Headers({
         accept: "application/json"
@@ -525,7 +555,7 @@ export class CouchClient {
 
   // DB
   async databaseExists(name: string): Promise<boolean> {
-    const res = await fetch(`${this.endpoint}/${name}`, { method: "HEAD" });
+    const res = await this.fetch(`/${name}`, { method: "HEAD" });
     if (res.status === 200) {
       return true;
     } else if (res.status === 404) {
@@ -535,7 +565,7 @@ export class CouchClient {
   }
 
   async getDatabase(name: string): Promise<CouchDatabaseInfo> {
-    const res = await fetch(`${this.endpoint}/${name}`);
+    const res = await this.fetch(`/${name}`);
     if (res.status === 200) {
       return res.json();
     }
@@ -558,7 +588,7 @@ export class CouchClient {
         params.append("n", opts.n + "");
       }
     }
-    const res = await fetch(`${this.endpoint}/${name}?${params.toString()}`, {
+    const res = await this.fetch(`/${name}?${params.toString()}`, {
       method: "PUT",
       headers: new Headers({
         accept: "application/json"
@@ -579,7 +609,7 @@ export class CouchClient {
   ): Promise<{
     ok: boolean;
   }> {
-    const res = await fetch(`${this.endpoint}/${name}`, {
+    const res = await this.fetch(`/${name}`, {
       method: "DELETE"
     });
     if (res.status === 200 || res.status === 202) {
@@ -592,6 +622,6 @@ export class CouchClient {
   }
 
   database<T>(db: string): CouchDatabase<T> {
-    return new CouchDatabase<T>(this.endpoint, db);
+    return new CouchDatabase<T>(this.endpoint, db, this.opts);
   }
 }

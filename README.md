@@ -38,3 +38,23 @@ async function main() {
   await db.delete(id);
 }
 ```
+# Compatibility Table
+
+## Document
+
+- [x] `HEAD /{db}/{docid}`
+- [x] `GET /{db}/{docid}`
+- [x] `PUT /{db}/{docid}`
+- [x] `DELETE /{db}/{docid}`
+- [x] `COPY /{db}/{docid}`
+
+## Attachments
+
+- [x] `HEAD /{db}/{docid}/{attname}`
+- [x] `GET /{db}/{docid}/{attname}`
+- [x] `PUT /{db}/{docid}/{attname}`
+- [x] `DELETE /{db}/{docid}/{attname}`
+
+## Server
+
+- WIP...
