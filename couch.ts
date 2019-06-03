@@ -283,7 +283,8 @@ class CouchDatabase<T> {
   ): Promise<{ id: string; ok: boolean; rev: string }> {
     const body = JSON.stringify(doc);
     const headers = new Headers({
-      "content-type": "application/json"
+      "content-type": "application/json",
+      accept: "application/json"
     });
     let params = new URLSearchParams();
     if (opts) {
@@ -322,7 +323,8 @@ class CouchDatabase<T> {
   ): Promise<CouchResponse> {
     const params = new URLSearchParams();
     const headers = new Headers({
-      destination
+      destination,
+      accept: "application/json"
     });
     if (opts) {
       if (opts.fullCommit != null) {
@@ -367,7 +369,10 @@ class CouchDatabase<T> {
       }
     }
     const res = await this.fetch(`/${id}?${params.toString()}`, {
-      method: "DELETE"
+      method: "DELETE",
+      headers: {
+        accept: "application/json"
+      }
     });
     if (res.status === 200 || res.status === 202) {
       return res.json();
@@ -387,7 +392,10 @@ class CouchDatabase<T> {
       params.append("rev", opts.rev);
     }
     const res = await this.fetch(`/${id}/${attachment}?${params.toString()}`, {
-      method: "GET"
+      method: "GET",
+      headers: new Headers({
+        "accept": "application/json"
+      })
     });
     if (res.status === 200) {
       return res.headers;
@@ -432,7 +440,8 @@ class CouchDatabase<T> {
   ): Promise<CouchResponse> {
     const params = new URLSearchParams();
     const headers = new Headers({
-      "content-type": contentType
+      "content-type": contentType,
+      "accept": "application/json"
     });
     if (rev != null) {
       params.append("rev", rev);
@@ -461,7 +470,9 @@ class CouchDatabase<T> {
     }
   ): Promise<CouchResponse> {
     const params = new URLSearchParams();
-    const headers = new Headers();
+    const headers = new Headers({
+      accept: "application/json"
+    });
     params.append("rev", rev);
     if (opts) {
       if (opts.batch != null) {
@@ -524,7 +535,8 @@ class CouchDatabase<T> {
     const res = await this.fetch(`/_find`, {
       method: "POST",
       headers: new Headers({
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "accept": "application/json"
       }),
       body
     });
