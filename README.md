@@ -10,7 +10,7 @@ CouchDB client for Deno built top of fetch
 # Usage
 
 ```ts
-import { CouchClient } from "https://denopkg.com/keroxp/couch.ts";
+import { CouchClient } from "https://denopkg.com/keroxp/deno-couchdb/couch.ts";
 
 export type User = {
   id: number;
@@ -37,7 +37,7 @@ async function main() {
   // get existing document
   let user = await db.get(id); // {id: 100, name: "deno", years: [2018,2019]}
   // update existing document
-  user.name.years.push(2020);
+  user.years.push(2020);
   await db.put(id, user, { rev });
   // delete existing document
   await db.delete(id);
