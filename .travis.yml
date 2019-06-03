@@ -8,4 +8,5 @@ install:
 - export PATH="$HOME/.deno/bin:$PATH"
 
 script:
+- curl -X GET http://localhost:5984/
 - deno run -A ./couch_test.ts
