@@ -1,0 +1,11 @@
+language: python
+
+services:
+  - couchdb
+
+install:
+- curl -fsSL https://deno.land/x/install/install.sh | sh -s -- v0.7.0
+- export PATH="$HOME/.deno/bin:$PATH"
+
+script:
+- deno run -A ./couch_test.ts

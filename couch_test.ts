@@ -37,7 +37,6 @@ async function useDatabase(f: (db: string) => Promise<unknown>) {
 test(async function metadata() {
   const data = await client.metadata();
   assertEquals(data.couchdb, "Welcome");
-  assertEquals(data.version, "2.3.0");
 });
 test(async function databaseExists() {
   const exists = await client.databaseExists("nodb");
