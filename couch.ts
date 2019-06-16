@@ -2,8 +2,6 @@ import Reader = Deno.Reader;
 import Buffer = Deno.Buffer;
 import copy = Deno.copy;
 import Response = domTypes.Response;
-import BodySource = body.BodySource;
-import RequestInit = domTypes.RequestInit;
 
 export type CouchResponse = {
   id: string;
@@ -93,7 +91,14 @@ export type CouchOptions = {
   };
 };
 
-type FetchFunctionLike = (url: string, opts?: RequestInit) => Promise<Response>;
+type FetchFunctionLike = (
+  url: string,
+  opts: {
+    method: string;
+    body?: string | ArrayBuffer;
+    headers?: Headers;
+  }
+) => Promise<Response>;
 function makeFetch(
   endpoint: string,
   opts: CouchOptions = {}
@@ -105,10 +110,10 @@ function makeFetch(
       body,
       headers = new Headers()
     }: {
-      method?: string;
+      method: string;
+      body?: string | ArrayBuffer;
       headers?: Headers;
-      body?: BodySource;
-    } = {}
+    }
   ) => {
     if (opts.basicAuth) {
       const { username, password } = opts.basicAuth;
@@ -197,7 +202,8 @@ class CouchDatabase<T> {
       revs_info: boolean;
     }>
   ): Promise<(CouchDocument & T) | NotModified> {
-    return this._get("json", id, opts);
+    const res = await this._get("json", id, opts);
+    return res.json();
   }
 
   async getMultipart(
@@ -216,12 +222,12 @@ class CouchDatabase<T> {
       revs: boolean;
       revs_info: boolean;
     }>
-  ): Promise<Response | NotModified> {
+  ): Promise<Response> {
     return this._get("multipart", id, opts);
   }
 
-  private async _get<A extends "json" | "multipart">(
-    accept: A,
+  private async _get(
+    accept: "json" | "multipart",
     id: string,
     opts?: Partial<{
       attachments: boolean;
@@ -237,12 +243,7 @@ class CouchDatabase<T> {
       revs: boolean;
       revs_info: boolean;
     }>
-  ): Promise<
-    {
-      json: (CouchDocument & T) | NotModified;
-      multipart: Response | NotModified;
-    }[A]
-  > {
+  ): Promise<Response> {
     const params = new URLSearchParams();
     if (opts != null) {
       if (opts.attachments != null) {
@@ -259,14 +260,8 @@ class CouchDatabase<T> {
       method: "GET",
       headers: new Headers({ accept })
     });
-    if (res.status === 200) {
-      if (accept === "multipart") {
-        return res;
-      } else if (accept === "json") {
-        return res.json();
-      }
-    } else if (res.status === 304) {
-      return NotModified;
+    if (res.status === 200 || res.status === 304) {
+      return res;
     }
     throw new CouchError(res.status, await res.text());
   }
@@ -370,9 +365,9 @@ class CouchDatabase<T> {
     }
     const res = await this.fetch(`/${id}?${params.toString()}`, {
       method: "DELETE",
-      headers: {
+      headers: new Headers({
         accept: "application/json"
-      }
+      })
     });
     if (res.status === 200 || res.status === 202) {
       return res.json();
@@ -394,7 +389,7 @@ class CouchDatabase<T> {
     const res = await this.fetch(`/${id}/${attachment}?${params.toString()}`, {
       method: "GET",
       headers: new Headers({
-        "accept": "application/json"
+        accept: "application/json"
       })
     });
     if (res.status === 200) {
@@ -441,7 +436,7 @@ class CouchDatabase<T> {
     const params = new URLSearchParams();
     const headers = new Headers({
       "content-type": contentType,
-      "accept": "application/json"
+      accept: "application/json"
     });
     if (rev != null) {
       params.append("rev", rev);
@@ -536,7 +531,7 @@ class CouchDatabase<T> {
       method: "POST",
       headers: new Headers({
         "content-type": "application/json",
-        "accept": "application/json"
+        accept: "application/json"
       }),
       body
     });
@@ -577,7 +572,7 @@ export class CouchClient {
   }
 
   async getDatabase(name: string): Promise<CouchDatabaseInfo> {
-    const res = await this.fetch(`/${name}`);
+    const res = await this.fetch(`/${name}`, { method: "GET" });
     if (res.status === 200) {
       return res.json();
     }
