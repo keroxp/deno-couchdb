@@ -3,8 +3,8 @@
 ![https://travis-ci.com/keroxp/deno-couchdb](https://travis-ci.com/keroxp/deno-couchdb.svg?branch=master)
 ![https://img.shields.io/github/tag/keroxp/deno-couchdb.svg](https://img.shields.io/github/tag/keroxp/deno-couchdb.svg)
 [![license](https://img.shields.io/github/license/keroxp/deno-couchdb.svg)](https://github.com/keroxp/deno-couchdb)
-[![tag](https://img.shields.io/badge/deno__std-v0.9.0-green.svg)](https://github.com/denoland/deno_std)
-[![tag](https://img.shields.io/badge/deno-v0.9.0-green.svg)](https://github.com/denoland/deno)
+[![tag](https://img.shields.io/badge/deno__std-v0.12.0-green.svg)](https://github.com/denoland/deno_std)
+[![tag](https://img.shields.io/badge/deno-v0.13.0-green.svg)](https://github.com/denoland/deno)
 
 CouchDB client for Deno built top of fetch
 
