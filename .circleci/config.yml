@@ -3,7 +3,7 @@ jobs:
   build:
     docker:
       - image: circleci/node:stretch
-      - image: circleci/redis:5-alpine
+      - image: couchdb:2.3.0
     steps:
       - checkout
       - run:
@@ -14,4 +14,5 @@ jobs:
           name: Run Tests
           command: |
             export PATH=$HOME/.deno/bin:$PATH
+            sleep 5
             deno -A couch_test.ts
