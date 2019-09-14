@@ -1,9 +1,9 @@
-import { runIfMain, test } from "./vendor/https/std/testing/mod.ts";
+import { runIfMain, test } from "./vendor/https/deno.land/std/testing/mod.ts";
 import { CouchClient } from "./couch.ts";
 import {
   assert,
   assertEquals
-} from "./vendor/https/std/testing/asserts.ts";
+} from "./vendor/https/deno.land/std/testing/asserts.ts";
 import open = Deno.open;
 
 const kDbName = "testdb";
