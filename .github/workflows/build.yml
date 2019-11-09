@@ -19,5 +19,5 @@ jobs:
     - name: Run Tests
       run: |
         export PATH=$HOME/.deno/bin:$PATH
-        sleep 5
+        sleep 10
         deno -A couch_test.ts
