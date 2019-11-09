@@ -15,6 +15,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install Deno
       run: |
+        DENO_VERSION=$(cat .denov)
         curl -fsSL https://deno.land/x/install/install.sh | bash -s -- v0.23.0
     - name: Run Tests
       run: |
