@@ -1,10 +1,8 @@
 # deno-couchdb
 
-[![CircleCI](https://circleci.com/gh/keroxp/deno-couchdb.svg?style=svg)](https://circleci.com/gh/keroxp/deno-couchdb)
+[![Build Status](https://github.com/keroxp/deno-couchdb/workflows/CI/badge.svg)](https://github.com/keroxp/deno-couchdb/actions)
 ![https://img.shields.io/github/tag/keroxp/deno-couchdb.svg](https://img.shields.io/github/tag/keroxp/deno-couchdb.svg)
 [![license](https://img.shields.io/github/license/keroxp/deno-couchdb.svg)](https://github.com/keroxp/deno-couchdb)
-[![tag](https://img.shields.io/badge/deno__std-v0.23.0-green.svg)](https://github.com/denoland/deno_std)
-[![tag](https://img.shields.io/badge/deno-v0.23.0-green.svg)](https://github.com/denoland/deno)
 
 CouchDB client for Deno built top of fetch
 
