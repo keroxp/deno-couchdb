@@ -1,7 +1,6 @@
 import Reader = Deno.Reader;
 import Buffer = Deno.Buffer;
 import copy = Deno.copy;
-import Response = domTypes.Response;
 
 export type CouchResponse = {
   id: string;
