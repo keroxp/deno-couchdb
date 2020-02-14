@@ -25,4 +25,4 @@ jobs:
       run: |
         export PATH=$HOME/.local/bin:$PATH
         sleep 10
-        deno -A couch_test.ts
+        deno test -A couch_test.ts

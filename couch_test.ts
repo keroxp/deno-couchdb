@@ -1,10 +1,10 @@
-import { runIfMain, test } from "./vendor/https/deno.land/std/testing/mod.ts";
 import { CouchClient } from "./couch.ts";
 import {
   assert,
   assertEquals
 } from "./vendor/https/deno.land/std/testing/asserts.ts";
 import open = Deno.open;
+const { test } = Deno;
 
 const kDbName = "testdb";
 const env = Deno.env();
@@ -12,16 +12,6 @@ const endpoint = env["COUCHDB_ENDPOINT"] || "http://127.0.0.1:5984";
 const client = new CouchClient(endpoint);
 const db = client.database(kDbName);
 
-async function beforeAll() {
-  if (await client.databaseExists(kDbName)) {
-    await client.deleteDatabase(kDbName);
-  }
-  await client.createDatabase(kDbName);
-}
-
-async function afterAll() {
-  await client.deleteDatabase(kDbName);
-}
 
 async function useDatabase(f: (db: string) => Promise<unknown>) {
   const name = "testdb-" + Math.round(Math.random() * 10000000);
@@ -35,6 +25,12 @@ async function useDatabase(f: (db: string) => Promise<unknown>) {
       }
     });
 }
+test("beforeAll", async () => {
+  if (await client.databaseExists(kDbName)) {
+    await client.deleteDatabase(kDbName);
+  }
+  await client.createDatabase(kDbName);
+});
 
 test(async function metadata() {
   const data = await client.metadata();
@@ -206,10 +202,7 @@ test(async function deleteAttachment() {
   assertEquals(res, void 0);
 });
 
-beforeAll()
-  .then(() =>
-    runIfMain(import.meta, {
-      parallel: true
-    })
-  )
-  .then(afterAll);
+test("afterAll", async () => {
+  await client.deleteDatabase(kDbName);
+});
+
