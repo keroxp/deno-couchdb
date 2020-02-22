@@ -12,7 +12,6 @@ const endpoint = env["COUCHDB_ENDPOINT"] || "http://127.0.0.1:5984";
 const client = new CouchClient(endpoint);
 const db = client.database(kDbName);
 
-
 async function useDatabase(f: (db: string) => Promise<unknown>) {
   const name = "testdb-" + Math.round(Math.random() * 10000000);
   return client
@@ -205,4 +204,3 @@ test(async function deleteAttachment() {
 test("afterAll", async () => {
   await client.deleteDatabase(kDbName);
 });
-
