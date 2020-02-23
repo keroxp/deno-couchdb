@@ -10,7 +10,7 @@ const kDbName = "testdb";
 const env = Deno.env();
 const endpoint = env["COUCHDB_ENDPOINT"] || "http://127.0.0.1:5984";
 const client = new CouchClient(endpoint);
-const db = client.database(kDbName);
+const db = client.database<any>(kDbName);
 
 async function useDatabase(f: (db: string) => Promise<unknown>) {
   const name = "testdb-" + Math.round(Math.random() * 10000000);
@@ -147,7 +147,7 @@ test(async function findDocument() {
       name: "node"
     })
   ]);
-  const res = await db.find({
+  const res = await db.find<any>({
     id: 100
   });
   assertEquals(res.docs.length, 1);
