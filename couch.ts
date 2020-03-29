@@ -75,7 +75,7 @@ export class CouchError extends Error {
   constructor(
     readonly status: number,
     readonly error: string,
-    readonly reason?: string
+    readonly reason?: string,
   ) {
     super(status + ":" + error);
   }
@@ -90,29 +90,21 @@ export type CouchOptions = {
   };
 };
 
-type FetchFunctionLike = (
-  url: string,
-  opts: {
-    method: string;
-    body?: string | ArrayBuffer;
-    headers?: Headers;
-  }
-) => Promise<Response>;
 function makeFetch(
   endpoint: string,
-  opts: CouchOptions = {}
-): FetchFunctionLike {
+  opts: CouchOptions = {},
+) {
   return (
     path: string,
     {
       method = "GET",
       body,
-      headers = new Headers()
+      headers = new Headers(),
     }: {
       method: string;
       body?: string | ArrayBuffer;
       headers?: Headers;
-    }
+    },
   ) => {
     if (opts.basicAuth) {
       const { username, password } = opts.basicAuth;
@@ -122,7 +114,7 @@ function makeFetch(
     return fetch(`${endpoint}` + path, {
       headers,
       body,
-      method
+      method,
     });
   };
 }
@@ -131,7 +123,7 @@ class CouchDatabase<T> {
   constructor(
     readonly endpoint: string,
     readonly db: string,
-    readonly opts: CouchOptions = {}
+    readonly opts: CouchOptions = {},
   ) {}
 
   private fetch = makeFetch(`${this.endpoint}/${this.db}`, this.opts);
@@ -141,7 +133,7 @@ class CouchDatabase<T> {
     opts?: {
       batch?: "ok";
       fullCommit?: boolean;
-    }
+    },
   ): Promise<{
     id: string;
     ok: boolean;
@@ -149,7 +141,7 @@ class CouchDatabase<T> {
   }> {
     const headers = new Headers({
       "content-type": "application/json",
-      accept: "application/json"
+      accept: "application/json",
     });
     let path = "";
     if (opts) {
@@ -164,7 +156,7 @@ class CouchDatabase<T> {
     const res = await this.fetch(path, {
       method: "POST",
       headers,
-      body
+      body,
     });
     if (res.status === 201 || res.status === 202) {
       return res.json();
@@ -174,8 +166,9 @@ class CouchDatabase<T> {
 
   async info(id: string): Promise<Headers | undefined> {
     const res = await this.fetch(`/${id}`, {
-      method: "HEAD"
+      method: "HEAD",
     });
+    res.body.close();
     if (res.status === 200 || res.status === 304) {
       return res.headers;
     } else if (res.status === 404) {
@@ -199,7 +192,7 @@ class CouchDatabase<T> {
       rev: string;
       revs: boolean;
       revs_info: boolean;
-    }>
+    }>,
   ): Promise<(CouchDocument & T) | NotModified> {
     const res = await this._get("json", id, opts);
     return res.json();
@@ -220,7 +213,7 @@ class CouchDatabase<T> {
       rev: string;
       revs: boolean;
       revs_info: boolean;
-    }>
+    }>,
   ): Promise<Response> {
     return this._get("multipart", id, opts);
   }
@@ -241,7 +234,7 @@ class CouchDatabase<T> {
       rev: string;
       revs: boolean;
       revs_info: boolean;
-    }>
+    }>,
   ): Promise<Response> {
     const params = new URLSearchParams();
     if (opts != null) {
@@ -251,13 +244,13 @@ class CouchDatabase<T> {
       if (opts.att_encoding_info != null) {
         params.set(
           "att_encoding_info",
-          opts.att_encoding_info ? "true" : "false"
+          opts.att_encoding_info ? "true" : "false",
         );
       }
     }
     const res = await this.fetch(`/${id}?${params.toString()}`, {
       method: "GET",
-      headers: new Headers({ accept })
+      headers: new Headers({ accept }),
     });
     if (res.status === 200 || res.status === 304) {
       return res;
@@ -273,12 +266,12 @@ class CouchDatabase<T> {
       rev?: string;
       batch?: "ok";
       new_edits?: boolean;
-    }
+    },
   ): Promise<{ id: string; ok: boolean; rev: string }> {
     const body = JSON.stringify(doc);
     const headers = new Headers({
       "content-type": "application/json",
-      accept: "application/json"
+      accept: "application/json",
     });
     let params = new URLSearchParams();
     if (opts) {
@@ -298,7 +291,7 @@ class CouchDatabase<T> {
     const res = await this.fetch(`/${id}?${params.toString()}`, {
       method: "PUT",
       headers,
-      body
+      body,
     });
     if (res.status === 201 || res.status === 202) {
       return res.json();
@@ -313,12 +306,12 @@ class CouchDatabase<T> {
       rev?: string;
       batch?: "ok";
       fullCommit?: boolean;
-    }
+    },
   ): Promise<CouchResponse> {
     const params = new URLSearchParams();
     const headers = new Headers({
       destination,
-      accept: "application/json"
+      accept: "application/json",
     });
     if (opts) {
       if (opts.fullCommit != null) {
@@ -333,7 +326,7 @@ class CouchDatabase<T> {
     }
     const res = await this.fetch(`/${id}?${params.toString()}`, {
       method: "COPY",
-      headers
+      headers,
     });
     if (res.status === 201 || res.status === 202) {
       return res.json();
@@ -347,10 +340,10 @@ class CouchDatabase<T> {
     opts?: {
       batch?: "ok";
       fullCommit?: boolean;
-    }
+    },
   ): Promise<CouchResponse> {
     const headers = new Headers({
-      "content-type": "application/json"
+      "content-type": "application/json",
     });
     let params = new URLSearchParams();
     params.append("rev", rev);
@@ -365,8 +358,8 @@ class CouchDatabase<T> {
     const res = await this.fetch(`/${id}?${params.toString()}`, {
       method: "DELETE",
       headers: new Headers({
-        accept: "application/json"
-      })
+        accept: "application/json",
+      }),
     });
     if (res.status === 200 || res.status === 202) {
       return res.json();
@@ -379,7 +372,7 @@ class CouchDatabase<T> {
     attachment: string,
     opts?: {
       rev: string;
-    }
+    },
   ): Promise<Headers | undefined> {
     const params = new URLSearchParams();
     if (opts) {
@@ -388,9 +381,10 @@ class CouchDatabase<T> {
     const res = await this.fetch(`/${id}/${attachment}?${params.toString()}`, {
       method: "GET",
       headers: new Headers({
-        accept: "application/json"
-      })
+        accept: "application/json",
+      }),
     });
+    res.body.close();
     if (res.status === 200) {
       return res.headers;
     } else if (res.status === 404) {
@@ -404,14 +398,14 @@ class CouchDatabase<T> {
     attachment: string,
     opts?: {
       rev: string;
-    }
+    },
   ): Promise<ArrayBuffer> {
     const params = new URLSearchParams();
     if (opts) {
       params.append("rev", opts.rev);
     }
     const res = await this.fetch(`/${id}/${attachment}?${params.toString()}`, {
-      method: "GET"
+      method: "GET",
     });
     if (res.status === 200) {
       return res.arrayBuffer();
@@ -425,17 +419,17 @@ class CouchDatabase<T> {
     {
       data,
       contentType,
-      rev
+      rev,
     }: {
       data: Reader;
       contentType: string;
       rev?: string;
-    }
+    },
   ): Promise<CouchResponse> {
     const params = new URLSearchParams();
     const headers = new Headers({
       "content-type": contentType,
-      accept: "application/json"
+      accept: "application/json",
     });
     if (rev != null) {
       params.append("rev", rev);
@@ -446,7 +440,7 @@ class CouchDatabase<T> {
     const res = await this.fetch(`/${id}/${attachment}?${params.toString()}`, {
       method: "PUT",
       headers,
-      body: buf.bytes()
+      body: buf.bytes(),
     });
     if (res.status === 201 || res.status === 202) {
       return res.json();
@@ -461,11 +455,11 @@ class CouchDatabase<T> {
     opts?: {
       fullCommit?: boolean;
       batch?: "ok";
-    }
+    },
   ): Promise<CouchResponse> {
     const params = new URLSearchParams();
     const headers = new Headers({
-      accept: "application/json"
+      accept: "application/json",
     });
     params.append("rev", rev);
     if (opts) {
@@ -477,7 +471,7 @@ class CouchDatabase<T> {
       }
     }
     const res = await this.fetch(`/${id}/${attachment}?${params.toString()}`, {
-      method: "GET"
+      method: "GET",
     });
     if (res.status === 200 || res.status === 202) {
       return res.json();
@@ -499,7 +493,7 @@ class CouchDatabase<T> {
       stable: boolean;
       stale: string;
       execution_stats: boolean;
-    }> = {}
+    }> = {},
   ): Promise<{
     docs: T[];
     warning?: string;
@@ -524,15 +518,15 @@ class CouchDatabase<T> {
       update: opts.update,
       stale: opts.stale,
       stable: opts.stable,
-      execution_stats: opts.execution_stats
+      execution_stats: opts.execution_stats,
     });
     const res = await this.fetch(`/_find`, {
       method: "POST",
       headers: new Headers({
         "content-type": "application/json",
-        accept: "application/json"
+        accept: "application/json",
       }),
-      body
+      body,
     });
     if (res.status === 200) {
       return res.json();
@@ -550,8 +544,8 @@ export class CouchClient {
     const res = await this.fetch("/", {
       method: "GET",
       headers: new Headers({
-        accept: "application/json"
-      })
+        accept: "application/json",
+      }),
     });
     if (res.status === 200) {
       return res.json();
@@ -562,6 +556,7 @@ export class CouchClient {
   // DB
   async databaseExists(name: string): Promise<boolean> {
     const res = await this.fetch(`/${name}`, { method: "HEAD" });
+    res.body.close();
     if (res.status === 200) {
       return true;
     } else if (res.status === 404) {
@@ -583,7 +578,7 @@ export class CouchClient {
     opts?: {
       q?: number;
       n?: number;
-    }
+    },
   ): Promise<{ ok: boolean }> {
     const params = new URLSearchParams();
     if (opts != null) {
@@ -597,8 +592,8 @@ export class CouchClient {
     const res = await this.fetch(`/${name}?${params.toString()}`, {
       method: "PUT",
       headers: new Headers({
-        accept: "application/json"
-      })
+        accept: "application/json",
+      }),
     });
     if (res.status === 201 || res.status === 202) {
       return res.json();
@@ -611,12 +606,12 @@ export class CouchClient {
   }
 
   async deleteDatabase(
-    name: string
+    name: string,
   ): Promise<{
     ok: boolean;
   }> {
     const res = await this.fetch(`/${name}`, {
-      method: "DELETE"
+      method: "DELETE",
     });
     if (res.status === 200 || res.status === 202) {
       return res.json();

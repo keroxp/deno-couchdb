@@ -12,24 +12,23 @@ const endpoint = env["COUCHDB_ENDPOINT"] || "http://127.0.0.1:5984";
 const client = new CouchClient(endpoint);
 const db = client.database<any>(kDbName);
 
+if (await client.databaseExists(kDbName)) {
+  await client.deleteDatabase(kDbName);
+}
+await client.createDatabase(kDbName);
+
 async function useDatabase(f: (db: string) => Promise<unknown>) {
   const name = "testdb-" + Math.round(Math.random() * 10000000);
   return client
     .databaseExists(name)
-    .then(ok => (ok ? null : client.createDatabase(name)))
-    .then(_ => f(name))
+    .then((ok) => (ok ? null : client.createDatabase(name)))
+    .then((_) => f(name))
     .finally(async () => {
       if (await client.databaseExists(name)) {
         await client.deleteDatabase(name);
       }
     });
 }
-test("beforeAll", async () => {
-  if (await client.databaseExists(kDbName)) {
-    await client.deleteDatabase(kDbName);
-  }
-  await client.createDatabase(kDbName);
-});
 
 test(async function metadata() {
   const data = await client.metadata();
@@ -50,13 +49,13 @@ test(async function createDatabase() {
   }
 });
 test(async function getDatabase() {
-  await useDatabase(async db => {
+  await useDatabase(async (db) => {
     const info = await client.getDatabase(db);
     assertEquals(info.db_name, db);
   });
 });
 test(async function deleteDatabase() {
-  await useDatabase(async db => {
+  await useDatabase(async (db) => {
     const { ok } = await client.deleteDatabase(db);
     assertEquals(ok, true);
     assertEquals(await client.databaseExists(db), false);
@@ -66,9 +65,9 @@ test(async function deleteDatabase() {
 test(async function createDocument() {
   const obj = {
     name: "deno",
-    nice: true
+    nice: true,
   };
-  await useDatabase(async _ => {
+  await useDatabase(async (_) => {
     const res = await db.insert(obj);
     assertEquals(res.ok, true);
   });
@@ -77,9 +76,9 @@ test(async function getDocument() {
   const obj = {
     name: "deno",
     nice: true,
-    years: [2018, 2019]
+    years: [2018, 2019],
   };
-  await useDatabase(async _ => {
+  await useDatabase(async (_) => {
     const res = await db.insert(obj);
     assertEquals(res.ok, true);
     const doc = await db.get(res.id);
@@ -93,7 +92,7 @@ test(async function putDocument() {
   const doc = {
     name: "deno",
     nice: true,
-    years: [2018, 2019]
+    years: [2018, 2019],
   };
   const _id = "denode";
   const { id, rev, ok } = await db.put(_id, doc);
@@ -102,7 +101,7 @@ test(async function putDocument() {
   const doc2 = {
     name: "node",
     nice: true,
-    years: [2009, 2019]
+    years: [2009, 2019],
   };
   const res = await db.put(id, doc2, { rev });
   assertEquals(res.id, id);
@@ -119,7 +118,7 @@ test(async function documentInfo() {
 });
 test(async function deleteDocument() {
   const doc = {
-    name: "deno"
+    name: "deno",
   };
   const { id, rev } = await db.insert(doc);
   const res = await db.delete(id, rev);
@@ -129,7 +128,7 @@ test(async function deleteDocument() {
 
 test(async function copyDocument() {
   await db.put("deno", {
-    myNameIs: "deno"
+    myNameIs: "deno",
   });
   await db.copy("deno", "node");
   const o = await db.get("node");
@@ -140,15 +139,15 @@ test(async function findDocument() {
   await Promise.all([
     db.insert({
       id: 100,
-      name: "deno"
+      name: "deno",
     }),
     db.insert({
       id: 101,
-      name: "node"
-    })
+      name: "node",
+    }),
   ]);
   const res = await db.find<any>({
-    id: 100
+    id: 100,
   });
   assertEquals(res.docs.length, 1);
   assertEquals(res.docs[0]["id"], 100);
@@ -157,50 +156,49 @@ test(async function findDocument() {
 
 test(async function putAttachment() {
   const { id, rev } = await db.insert({
-    name: "couch.ts"
+    name: "couch.ts",
   });
-  const data = await open("./tsconfig.json");
-  const res = await db.putAttachment(id, "tsconfig.json", {
+  const data = await open("./fixtures/sample.json");
+  const res = await db.putAttachment(id, "fixtures/sample.json", {
     contentType: "application/json",
     data,
-    rev
+    rev,
   });
   assertEquals(res.ok, true);
+  data.close();
 });
 
 test(async function getAttachment() {
   const { id, rev } = await db.insert({
-    name: "couch.ts"
+    name: "couch.ts",
   });
-  const data = await open("./tsconfig.json");
-  await db.putAttachment(id, "tsconfig.json", {
+  const data = await open("./fixtures/sample.json");
+  await db.putAttachment(id, "fixtures/sample.json", {
     contentType: "application/json",
     data,
-    rev
+    rev,
   });
-  const attach = await db.getAttachment(id, "tsconfig.json");
+  const attach = await db.getAttachment(id, "fixtures/sample.json");
   const json = new TextDecoder().decode(attach);
   const content = JSON.parse(json);
-  assertEquals(content["compilerOptions"]["target"], "esnext");
+  assertEquals(content["deno"], "land");
+  data.close();
 });
 
 test(async function deleteAttachment() {
   const { id, rev } = await db.insert({
-    name: "couch.ts"
+    name: "couch.ts",
   });
-  const data = await open("./tsconfig.json");
-  const at = await db.putAttachment(id, "tsconfig.json", {
+  const data = await open("./fixtures/sample.json");
+  const at = await db.putAttachment(id, "fixtures/sample.json", {
     contentType: "application/json",
     data,
-    rev
+    rev,
   });
-  await db.deleteAttachment(id, "tsconfig.json", at.rev);
-  const res = await db.attachmentInfo(id, "tsconfig.json", {
-    rev
+  await db.deleteAttachment(id, "fixtures/sample.json", at.rev);
+  const res = await db.attachmentInfo(id, "fixtures/sample.json", {
+    rev,
   });
   assertEquals(res, void 0);
-});
-
-test("afterAll", async () => {
-  await client.deleteDatabase(kDbName);
+  data.close();
 });
