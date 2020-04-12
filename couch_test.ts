@@ -1,7 +1,7 @@
 import { CouchClient } from "./couch.ts";
 import {
   assert,
-  assertEquals
+  assertEquals,
 } from "./vendor/https/deno.land/std/testing/asserts.ts";
 import open = Deno.open;
 const { test } = Deno;
