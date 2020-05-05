@@ -168,7 +168,7 @@ class CouchDatabase<T> {
     const res = await this.fetch(`/${id}`, {
       method: "HEAD",
     });
-    res.body.close();
+    await res.text();
     if (res.status === 200 || res.status === 304) {
       return res.headers;
     } else if (res.status === 404) {
@@ -384,7 +384,7 @@ class CouchDatabase<T> {
         accept: "application/json",
       }),
     });
-    res.body.close();
+    await res.text();
     if (res.status === 200) {
       return res.headers;
     } else if (res.status === 404) {
@@ -436,7 +436,7 @@ class CouchDatabase<T> {
     }
     // TODO: use ReadableStream if possible
     const buf = new Buffer();
-    await copy(buf, data);
+    await copy(data, buf);
     const res = await this.fetch(`/${id}/${attachment}?${params.toString()}`, {
       method: "PUT",
       headers,
@@ -556,7 +556,7 @@ export class CouchClient {
   // DB
   async databaseExists(name: string): Promise<boolean> {
     const res = await this.fetch(`/${name}`, { method: "HEAD" });
-    res.body.close();
+    await res.text();
     if (res.status === 200) {
       return true;
     } else if (res.status === 404) {
