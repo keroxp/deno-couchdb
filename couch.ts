@@ -196,7 +196,10 @@ class CouchDatabase<T> {
     }>,
   ): Promise<(CouchDocument & T) | NotModified> {
     const res = await this._get("json", id, opts);
-    return res.json();
+    console.log('res', res);
+    const json = await res.json();
+    console.log('json', json);
+    return json;
   }
 
   async getMultipart(
