@@ -111,6 +111,7 @@ function makeFetch(
       const authorization = `Basic ${btoa(username + ":" + password)}`;
       headers.set("authorization", authorization);
     }
+    console.log('inside makefetch', `${endpoint}` + path)
     return fetch(`${endpoint}` + path, {
       headers,
       body,
