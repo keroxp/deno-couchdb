@@ -111,7 +111,6 @@ function makeFetch(
       const authorization = `Basic ${btoa(username + ":" + password)}`;
       headers.set("authorization", authorization);
     }
-    console.log('inside makefetch', `${endpoint}` + path)
     return fetch(`${endpoint}` + path, {
       headers,
       body,
@@ -195,10 +194,8 @@ class CouchDatabase<T> {
       revs_info: boolean;
     }>,
   ): Promise<(CouchDocument & T) | NotModified> {
-            console.log('inside get')
     const res = await this._get("json", id, opts);
-    console.log('res', res);
-    return {id: 'eded', rev: 'ededdd'};
+    return res.json();
   }
 
   async getMultipart(
@@ -217,7 +214,7 @@ class CouchDatabase<T> {
       revs: boolean;
       revs_info: boolean;
     }>,
-  ): Promise<String> {
+  ): Promise<Response> {
     return this._get("multipart", id, opts);
   }
 
@@ -238,10 +235,7 @@ class CouchDatabase<T> {
       revs: boolean;
       revs_info: boolean;
     }>,
-  ): Promise<String> {
-             return Promise.resolve( 'inside _Get')
-    //console.log('inside _Get')
-             /*
+  ): Promise<Response> {
     const params = new URLSearchParams();
     if (opts != null) {
       if (opts.attachments != null) {
@@ -254,17 +248,14 @@ class CouchDatabase<T> {
         );
       }
     }
-    console.log('inside _Get, before this fetch')
     const res = await this.fetch(`/${id}?${params.toString()}`, {
       method: "GET",
       headers: new Headers({ accept }),
     });
-console.log('res _get', res);
     if (res.status === 200 || res.status === 304) {
       return res;
     }
     throw new CouchError(res.status, await res.text());
-    */
   }
 
   async put(
