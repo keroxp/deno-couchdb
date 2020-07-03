@@ -241,6 +241,7 @@ class CouchDatabase<T> {
       revs_info: boolean;
     }>,
   ): Promise<Response> {
+    console.log('inside _Get')
     const params = new URLSearchParams();
     if (opts != null) {
       if (opts.attachments != null) {
@@ -253,6 +254,7 @@ class CouchDatabase<T> {
         );
       }
     }
+    console.log('inside _Get, before this fetch')
     const res = await this.fetch(`/${id}?${params.toString()}`, {
       method: "GET",
       headers: new Headers({ accept }),
