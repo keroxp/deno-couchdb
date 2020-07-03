@@ -219,7 +219,7 @@ class CouchDatabase<T> {
       revs: boolean;
       revs_info: boolean;
     }>,
-  ): Promise<Response> {
+  ): Promise<String> {
     return this._get("multipart", id, opts);
   }
 
