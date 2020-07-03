@@ -256,6 +256,7 @@ class CouchDatabase<T> {
       method: "GET",
       headers: new Headers({ accept }),
     });
+console.log('res _get', res);
     if (res.status === 200 || res.status === 304) {
       return res;
     }
