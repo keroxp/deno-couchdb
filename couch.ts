@@ -241,7 +241,9 @@ class CouchDatabase<T> {
       revs_info: boolean;
     }>,
   ): Promise<Response> {
-    console.log('inside _Get')
+             return Promise.resolve({msg: 'inside _Get'})
+    //console.log('inside _Get')
+             /*
     const params = new URLSearchParams();
     if (opts != null) {
       if (opts.attachments != null) {
@@ -264,6 +266,7 @@ console.log('res _get', res);
       return res;
     }
     throw new CouchError(res.status, await res.text());
+    */
   }
 
   async put(
