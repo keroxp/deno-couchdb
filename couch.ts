@@ -240,7 +240,7 @@ class CouchDatabase<T> {
       revs: boolean;
       revs_info: boolean;
     }>,
-  ): Promise<Response> {
+  ): Promise<String> {
              return Promise.resolve( 'inside _Get')
     //console.log('inside _Get')
              /*
