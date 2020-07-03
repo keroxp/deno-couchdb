@@ -223,7 +223,7 @@ class CouchDatabase<T> {
     return this._get("multipart", id, opts);
   }
 
-  async _get(
+  private async _get(
     accept: "json" | "multipart",
     id: string,
     opts?: Partial<{
