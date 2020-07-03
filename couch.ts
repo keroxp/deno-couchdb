@@ -198,7 +198,7 @@ class CouchDatabase<T> {
             console.log('inside get')
     const res = await this._get("json", id, opts);
     console.log('res', res);
-    const json = await res.json();
+    const json = await res.text();
     console.log('json', json);
     return json;
   }
