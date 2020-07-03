@@ -241,7 +241,7 @@ class CouchDatabase<T> {
       revs_info: boolean;
     }>,
   ): Promise<Response> {
-             return Promise.resolve({msg: 'inside _Get'})
+             return Promise.resolve( 'inside _Get')
     //console.log('inside _Get')
              /*
     const params = new URLSearchParams();
