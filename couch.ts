@@ -195,6 +195,7 @@ class CouchDatabase<T> {
       revs_info: boolean;
     }>,
   ): Promise<(CouchDocument & T) | NotModified> {
+            console.log('inside get')
     const res = await this._get("json", id, opts);
     console.log('res', res);
     const json = await res.json();
