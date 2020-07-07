@@ -108,7 +108,7 @@ function makeFetch(
   ) => {
     if (opts.basicAuth) {
       const { username, password } = opts.basicAuth;
-      const authorization = `Basic ${atob(username + ":" + password)}`;
+      const authorization = `Basic ${btoa(username + ":" + password)}`;
       headers.set("authorization", authorization);
     }
     return fetch(`${endpoint}` + path, {
