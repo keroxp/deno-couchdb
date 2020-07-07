@@ -39,7 +39,7 @@ async function main() {
   user.years.push(2020);
   await db.put(id, user, { rev });
   // delete existing document
-  await db.delete(id);
+  await db.delete(id, rev);
 }
 ```
 
