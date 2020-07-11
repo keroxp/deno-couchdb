@@ -255,7 +255,8 @@ class CouchDatabase<T> {
     if (res.status === 200 || res.status === 304) {
       return res;
     }
-    throw new CouchError(res.status, await res.text());
+    return res.text();
+    // throw new CouchError(res.status, await res.text());
   }
 
   async put(
