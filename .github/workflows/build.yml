@@ -17,12 +17,7 @@ jobs:
         - 5984:5984
     steps:
       - uses: actions/checkout@v1
-      - name: Install Deno
-        run: |
-          echo "::set-env name=DENO_VERSION::$(cat .denov)"
       - uses: denolib/setup-deno@master
-        with:
-          deno-version: ${{ env.DENO_VERSION }}
       - name: Run Tests
         run: |
           sleep 10

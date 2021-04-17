@@ -90,10 +90,17 @@ export type CouchOptions = {
   };
 };
 
+interface Fetcher {
+  (path: string, params: {
+    method: string;
+    body?: string | ArrayBuffer;
+    headers?: Headers;
+  }): Promise<Response>;
+}
 function makeFetch(
   endpoint: string,
   opts: CouchOptions = {},
-) {
+): Fetcher {
   return (
     path: string,
     {
@@ -120,14 +127,15 @@ function makeFetch(
 }
 
 class CouchDatabase<T> {
+  private fetch: Fetcher;
+
   constructor(
     readonly endpoint: string,
     readonly db: string,
     readonly opts: CouchOptions = {},
-  ) {}
-
-  private fetch = makeFetch(`${this.endpoint}/${this.db}`, this.opts);
-
+  ) {
+    this.fetch = makeFetch(`${this.endpoint}/${this.db}`, this.opts);
+  }
   async insert(
     doc: T,
     opts?: {
@@ -536,10 +544,11 @@ class CouchDatabase<T> {
 }
 
 export class CouchClient {
-  constructor(readonly endpoint: string, readonly opts: CouchOptions = {}) {}
+  constructor(readonly endpoint: string, readonly opts: CouchOptions = {}) {
+    this.fetch = makeFetch(this.endpoint, this.opts);
+  }
 
-  private readonly fetch = makeFetch(this.endpoint, this.opts);
-
+  private readonly fetch: Fetcher;
   async metadata(): Promise<CouchMetadata> {
     const res = await this.fetch("/", {
       method: "GET",

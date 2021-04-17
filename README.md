@@ -30,7 +30,7 @@ async function main() {
   const uesr = {
     id: 100,
     name: "deno",
-    years: [2018, 2019]
+    years: [2018, 2019],
   };
   const { id, rev } = await db.insert(user);
   // get existing document
@@ -66,5 +66,5 @@ async function main() {
 
 ## Contributing
 
-WELCOME!  
+WELCOME!\
 There are still missing features and actually I'm not familiar with CouchDB😇
