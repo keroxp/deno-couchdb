@@ -260,10 +260,11 @@ class CouchDatabase<T> {
       method: "GET",
       headers: new Headers({ accept }),
     });
-    if (res.status === 200 || res.status === 304) {
+    //if (res.status === 200 || res.status === 304) {
       return res;
-    }
-    throw new CouchError(res.status, await res.text());
+    //}
+    // return Promise.reject(res.text());
+    // throw new CouchError(res.status, await res.text());
   }
 
   async put(
